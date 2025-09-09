@@ -1,7 +1,7 @@
 import "./globals.css";
 
 export const metadata = {
-  title: "Auth App",
+  title: "Facturacion",
   description: "Login y registro con Next.js + Express",
 };
 

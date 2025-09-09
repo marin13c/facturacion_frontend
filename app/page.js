@@ -45,10 +45,17 @@ export default function Home() {
             </Link>
 
             <Link
-              href="/invoice/pending"
+              href="/invoice/sent"
+              className="flex items-center justify-center gap-2 w-full bg-purple-600 text-white py-3 rounded-xl hover:bg-purple-700 transition font-semibold shadow-md"
+            >
+              <FileText className="w-5 h-5" /> Ver Facturas Enviadas
+            </Link>
+
+            <Link
+              href="/invoice/received"
               className="flex items-center justify-center gap-2 w-full bg-green-600 text-white py-3 rounded-xl hover:bg-green-700 transition font-semibold shadow-md"
             >
-              <FileText className="w-5 h-5" /> Ver Facturas Pendientes
+              <FileText className="w-5 h-5" /> Ver Facturas Recibidas
             </Link>
 
             <button

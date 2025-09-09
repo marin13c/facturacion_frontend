@@ -52,7 +52,7 @@ export default function PendingInvoices() {
           <div className="flex items-center gap-3">
             <FileText className="w-10 h-10 text-indigo-600" />
             <h2 className="text-3xl font-bold text-gray-800">
-              Facturas Pendientes
+              Facturas Recibidas
             </h2>
           </div>
 
@@ -82,6 +82,21 @@ export default function PendingInvoices() {
                 key={inv._id}
                 className="bg-white p-5 rounded-2xl shadow hover:shadow-xl transition border border-gray-100"
               >
+                {/* Estado */}
+                <div className="mb-3">
+                  <span
+                    className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                      inv.status === "Pendiente"
+                        ? "bg-yellow-100 text-yellow-700"
+                        : inv.status === "Pagada"
+                        ? "bg-green-100 text-green-700"
+                        : "bg-red-100 text-red-700"
+                    }`}
+                  >
+                    {inv.status || "Pendiente"}
+                  </span>
+                </div>
+
                 {/* Enviado por */}
                 <div className="flex items-center gap-2 mb-3">
                   <User className="w-5 h-5 text-indigo-500" />
