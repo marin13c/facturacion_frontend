@@ -1,74 +1,138 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { FileText, User } from "lucide-react";
+import {
+  FileText,
+  User,
+  Mail,
+  Calendar,
+  DollarSign,
+  MessageSquare,
+  Loader2,
+  ArrowLeft,
+} from "lucide-react";
+import { useRouter } from "next/navigation";
 
 export default function PendingInvoices() {
   const [invoices, setInvoices] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
     const token = localStorage.getItem("token");
-    if (!token) return;
+    if (!token) {
+      setLoading(false);
+      return;
+    }
 
     fetch("http://localhost:4000/api/invoices/pending", {
       headers: { Authorization: token },
     })
       .then((res) => res.json())
       .then((data) => {
-        // Si el backend devuelve un objeto con invoices
         setInvoices(Array.isArray(data) ? data : data.invoices || []);
       })
-      .catch((err) => console.log(err));
+      .catch((err) => console.log(err))
+      .finally(() => setLoading(false));
   }, []);
 
   return (
-    <div className="w-screen h-screen bg-gradient-to-br from-blue-200 to-blue-100 p-6 flex flex-col items-center">
-      <div className="w-full max-w-3xl">
-        <div className="flex items-center gap-3 mb-6">
-          <FileText className="w-10 h-10 text-indigo-500" />
-          <h2 className="text-3xl font-bold text-gray-800">
-            Facturas Pendientes
-          </h2>
+    <div className="min-h-screen w-full bg-gradient-to-br from-blue-100 to-indigo-100 p-6 flex flex-col items-center">
+      <div className="w-full max-w-6xl">
+        {/* Header fijo */}
+        <div className="flex items-center justify-between mb-8">
+          <button
+            onClick={() => router.back()}
+            className="flex items-center gap-2 text-indigo-600 hover:text-indigo-800 transition"
+          >
+            <ArrowLeft className="w-5 h-5" />
+            <span className="font-medium">Regresar</span>
+          </button>
+
+          <div className="flex items-center gap-3">
+            <FileText className="w-10 h-10 text-indigo-600" />
+            <h2 className="text-3xl font-bold text-gray-800">
+              Facturas Pendientes
+            </h2>
+          </div>
+
+          {/* 👇 mantenemos el espacio fijo aunque esté cargando */}
+          <span className="hidden sm:block text-gray-600 text-sm min-w-[120px] text-right">
+            {loading ? "Cargando..." : `Total: ${invoices.length}`}
+          </span>
         </div>
 
-        {invoices.length === 0 && (
-          <p className="text-gray-600 text-center py-10 bg-white rounded-2xl shadow">
-            No tienes facturas pendientes
-          </p>
-        )}
+        {/* Contenido */}
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-16 bg-white rounded-2xl shadow-md">
+            <Loader2 className="w-10 h-10 text-indigo-500 animate-spin mb-4" />
+            <p className="text-gray-600">Cargando facturas...</p>
+          </div>
+        ) : invoices.length === 0 ? (
+          <div className="text-center py-16 bg-white rounded-2xl shadow-md">
+            <FileText className="w-14 h-14 text-gray-400 mx-auto mb-4" />
+            <p className="text-gray-600 text-lg">
+              No tienes facturas pendientes 🚀
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {invoices.map((inv) => (
+              <div
+                key={inv._id}
+                className="bg-white p-5 rounded-2xl shadow hover:shadow-xl transition border border-gray-100"
+              >
+                {/* Enviado por */}
+                <div className="flex items-center gap-2 mb-3">
+                  <User className="w-5 h-5 text-indigo-500" />
+                  <span className="text-sm text-gray-700 font-medium">
+                    <strong>De:</strong> {inv.createdBy} ({inv.createdByEmail})
+                  </span>
+                </div>
 
-        <div className="flex flex-col gap-4">
-          {invoices.map((inv) => (
-            <div
-              key={inv._id}
-              className="bg-white p-6 rounded-2xl shadow-md flex flex-col gap-3 hover:shadow-lg transition"
-            >
-              <div className="flex items-center gap-2">
-                <User className="w-5 h-5 text-indigo-500" />
-                <span className="text-gray-700 font-medium">
-                  Enviado por: {inv.createdBy} ({inv.createdByEmail})
-                </span>
+                {/* Info */}
+                <div className="space-y-2 text-sm text-gray-700">
+                  <p className="flex items-center gap-2">
+                    <Mail className="w-4 h-4 text-indigo-400" />
+                    <span>
+                      <strong>Para:</strong> {inv.toUserEmail}
+                    </span>
+                  </p>
+                  <p className="flex items-center gap-2">
+                    <DollarSign className="w-4 h-4 text-green-500" />
+                    <span>
+                      <strong>Precio:</strong> ₡
+                      {inv.price?.toLocaleString() ?? 0}
+                    </span>
+                  </p>
+                  <p className="flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-indigo-400" />
+                    <span>
+                      <strong>Servicio:</strong> {inv.service}
+                    </span>
+                  </p>
+                  <p className="flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-indigo-400" />
+                    <span>
+                      <strong>Fecha:</strong>{" "}
+                      {inv.date
+                        ? new Date(inv.date).toLocaleDateString()
+                        : "Sin fecha"}
+                    </span>
+                  </p>
+                  {inv.comments && (
+                    <p className="flex items-start gap-2">
+                      <MessageSquare className="w-4 h-4 text-gray-400 mt-0.5" />
+                      <span>
+                        <strong>Comentarios:</strong> {inv.comments}
+                      </span>
+                    </p>
+                  )}
+                </div>
               </div>
-
-              <p>
-                <strong>Para:</strong> {inv.toUserEmail}
-              </p>
-              <p>
-                <strong>Precio:</strong> ₡{inv.price}
-              </p>
-              <p>
-                <strong>Servicio:</strong> {inv.service}
-              </p>
-              <p>
-                <strong>Fecha:</strong>{" "}
-                {new Date(inv.date).toLocaleDateString()}
-              </p>
-              <p>
-                <strong>Comentarios:</strong> {inv.comments}
-              </p>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
