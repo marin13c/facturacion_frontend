@@ -10,12 +10,15 @@ import {
   MessageSquare,
   Loader2,
   ArrowLeft,
+  X,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 export default function PendingInvoices() {
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedInvoice, setSelectedInvoice] = useState(null);
+  const [imageFile, setImageFile] = useState(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -35,6 +38,57 @@ export default function PendingInvoices() {
       .catch((err) => console.log(err))
       .finally(() => setLoading(false));
   }, []);
+
+  const handleFileChange = (e) => {
+    if (e.target.files.length > 0) {
+      setImageFile(e.target.files[0]);
+    } else {
+      setImageFile(null);
+    }
+  };
+
+  const handleMarkPaid = () => {
+    if (!selectedInvoice || !imageFile) return;
+
+    const reader = new FileReader();
+    reader.readAsDataURL(imageFile); // Esto lo convierte a Base64
+    reader.onload = async () => {
+      const imageBase64 = reader.result;
+
+      const token = localStorage.getItem("token");
+
+      try {
+        const res = await fetch(
+          `http://localhost:4000/api/invoices/${selectedInvoice._id}/pay`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: token,
+            },
+            body: JSON.stringify({ imageBase64 }),
+          }
+        );
+
+        const data = await res.json();
+        if (res.ok) {
+          // Actualizar localmente
+          setInvoices((prev) =>
+            prev.map((inv) =>
+              inv._id === selectedInvoice._id ? data.invoice : inv
+            )
+          );
+          setSelectedInvoice(null);
+          setImageFile(null);
+        } else {
+          alert(data.message || "Error al marcar la factura como pagada");
+        }
+      } catch (err) {
+        console.error(err);
+        alert("Error al marcar la factura como pagada");
+      }
+    };
+  };
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-blue-100 to-indigo-100 p-6 flex flex-col items-center">
@@ -56,7 +110,6 @@ export default function PendingInvoices() {
             </h2>
           </div>
 
-          {/* 👇 mantenemos el espacio fijo aunque esté cargando */}
           <span className="hidden sm:block text-gray-600 text-sm min-w-[120px] text-right">
             {loading ? "Cargando..." : `Total: ${invoices.length}`}
           </span>
@@ -80,7 +133,8 @@ export default function PendingInvoices() {
             {invoices.map((inv) => (
               <div
                 key={inv._id}
-                className="bg-white p-5 rounded-2xl shadow hover:shadow-xl transition border border-gray-100"
+                onClick={() => setSelectedInvoice(inv)}
+                className="bg-white p-5 rounded-2xl shadow hover:shadow-xl transition border border-gray-100 cursor-pointer"
               >
                 {/* Estado */}
                 <div className="mb-3">
@@ -149,6 +203,93 @@ export default function PendingInvoices() {
           </div>
         )}
       </div>
+
+      {/* Modal */}
+      {selectedInvoice && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md relative shadow-lg">
+            <button
+              onClick={() => {
+                setSelectedInvoice(null);
+                setImageFile(null);
+              }}
+              className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
+            >
+              <X className="w-6 h-6" />
+            </button>
+
+            <h3 className="text-xl font-bold mb-4">Detalles de la Factura</h3>
+
+            <div className="space-y-2 text-gray-700 text-sm">
+              <p>
+                <strong>De:</strong> {selectedInvoice.createdBy} (
+                {selectedInvoice.createdByEmail})
+              </p>
+              <p>
+                <strong>Para:</strong> {selectedInvoice.toUserEmail}
+              </p>
+              <p>
+                <strong>Precio:</strong> ₡
+                {selectedInvoice.price?.toLocaleString() ?? 0}
+              </p>
+              <p>
+                <strong>Servicio:</strong> {selectedInvoice.service}
+              </p>
+              <p>
+                <strong>Fecha:</strong>{" "}
+                {selectedInvoice.date
+                  ? new Date(selectedInvoice.date).toLocaleDateString()
+                  : "Sin fecha"}
+              </p>
+              {selectedInvoice.comments && (
+                <p>
+                  <strong>Comentarios:</strong> {selectedInvoice.comments}
+                </p>
+              )}
+            </div>
+
+            {/* Cargar imagen */}
+            {/* Cargar imagen */}
+            <div className="mt-4">
+              <label className="block mb-1 font-medium">
+                Subir Comprobante:
+              </label>
+              <div className="relative">
+                <input
+                  type="file"
+                  id="fileInput"
+                  onChange={handleFileChange}
+                  className="absolute w-full h-full opacity-0 cursor-pointer"
+                />
+                <div className="flex items-center justify-between border border-gray-300 rounded-xl px-4 py-2 bg-white hover:border-indigo-500 transition">
+                  <span>
+                    {imageFile ? imageFile.name : "Selecciona un archivo"}
+                  </span>
+                  <button
+                    type="button"
+                    className="text-indigo-600 font-semibold hover:text-indigo-800"
+                    onClick={() => document.getElementById("fileInput").click()}
+                  >
+                    Seleccionar
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={handleMarkPaid}
+              disabled={!imageFile}
+              className={`mt-4 w-full py-3 rounded-xl font-semibold text-white transition ${
+                imageFile
+                  ? "bg-green-600 hover:bg-green-700"
+                  : "bg-gray-300 cursor-not-allowed"
+              }`}
+            >
+              Marcar como Pagada
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
