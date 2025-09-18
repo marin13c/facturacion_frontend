@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
-export default function PendingInvoices() {
+export default function ReceivedInvoices() {
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedInvoice, setSelectedInvoice] = useState(null);
@@ -47,19 +47,18 @@ export default function PendingInvoices() {
     }
   };
 
-  const handleMarkPaid = () => {
+  const handleUploadProof = () => {
     if (!selectedInvoice || !imageFile) return;
 
     const reader = new FileReader();
-    reader.readAsDataURL(imageFile); // Esto lo convierte a Base64
+    reader.readAsDataURL(imageFile); // convierte a Base64
     reader.onload = async () => {
       const imageBase64 = reader.result;
-
       const token = localStorage.getItem("token");
 
       try {
         const res = await fetch(
-          `http://localhost:4000/api/invoices/${selectedInvoice._id}/pay`,
+          `http://localhost:4000/api/invoices/${selectedInvoice._id}/upload-proof`,
           {
             method: "POST",
             headers: {
@@ -72,7 +71,7 @@ export default function PendingInvoices() {
 
         const data = await res.json();
         if (res.ok) {
-          // Actualizar localmente
+          // Actualizar estado local
           setInvoices((prev) =>
             prev.map((inv) =>
               inv._id === selectedInvoice._id ? data.invoice : inv
@@ -81,11 +80,11 @@ export default function PendingInvoices() {
           setSelectedInvoice(null);
           setImageFile(null);
         } else {
-          alert(data.message || "Error al marcar la factura como pagada");
+          alert(data.message || "Error al subir comprobante");
         }
       } catch (err) {
         console.error(err);
-        alert("Error al marcar la factura como pagada");
+        alert("Error al subir comprobante");
       }
     };
   };
@@ -93,7 +92,7 @@ export default function PendingInvoices() {
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-blue-100 to-indigo-100 p-6 flex flex-col items-center">
       <div className="w-full max-w-6xl">
-        {/* Header fijo */}
+        {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <button
             onClick={() => router.back()}
@@ -142,12 +141,16 @@ export default function PendingInvoices() {
                     className={`px-3 py-1 rounded-full text-xs font-semibold ${
                       inv.status === "Pendiente"
                         ? "bg-yellow-100 text-yellow-700"
+                        : inv.status === "Comprobante Subido"
+                        ? "bg-blue-100 text-blue-700"
                         : inv.status === "Pagada"
                         ? "bg-green-100 text-green-700"
-                        : "bg-red-100 text-red-700"
+                        : inv.status === "Rechazada"
+                        ? "bg-red-100 text-red-700"
+                        : "bg-gray-100 text-gray-600"
                     }`}
                   >
-                    {inv.status || "Pendiente"}
+                    {inv.status}
                   </span>
                 </div>
 
@@ -206,7 +209,7 @@ export default function PendingInvoices() {
 
       {/* Modal */}
       {selectedInvoice && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 backdrop-blur-sm bg-black/20 flex items-center justify-center z-50">
           <div className="bg-white rounded-2xl p-6 w-full max-w-md relative shadow-lg">
             <button
               onClick={() => {
@@ -248,8 +251,7 @@ export default function PendingInvoices() {
               )}
             </div>
 
-            {/* Cargar imagen */}
-            {/* Cargar imagen */}
+            {/* Subir comprobante */}
             <div className="mt-4">
               <label className="block mb-1 font-medium">
                 Subir Comprobante:
@@ -277,15 +279,15 @@ export default function PendingInvoices() {
             </div>
 
             <button
-              onClick={handleMarkPaid}
+              onClick={handleUploadProof}
               disabled={!imageFile}
               className={`mt-4 w-full py-3 rounded-xl font-semibold text-white transition ${
                 imageFile
-                  ? "bg-green-600 hover:bg-green-700"
+                  ? "bg-blue-600 hover:bg-blue-700"
                   : "bg-gray-300 cursor-not-allowed"
               }`}
             >
-              Marcar como Pagada
+              Subir Comprobante
             </button>
           </div>
         </div>
